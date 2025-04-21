@@ -1,0 +1,148 @@
+<!-- Basit Baklava Show Web Sitesi -->
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Baklava Show</title>
+  <style>
+    body {
+      margin: 0;
+      background-color: #8b0000;
+      font-family: sans-serif;
+      color: white;
+      text-align: center;
+    }
+    h1 {
+      color: gold;
+      font-size: 3em;
+      margin-top: 50px;
+    }
+    .menu {
+      margin-top: 100px;
+    }
+    .menu button {
+      background-color: gold;
+      color: #8b0000;
+      font-size: 1.5em;
+      padding: 20px 40px;
+      margin: 20px;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+    }
+    .hidden {
+      display: none;
+    }
+    .photo-boxes {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 20px auto;
+      width: 60%;
+    }
+    .photo-box {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      position: relative;
+      cursor: pointer;
+    }
+    .photo-box input[type='file'] {
+      width: 100px;
+      height: 100px;
+      background-color: white;
+      border-radius: 8px;
+      padding: 10px;
+    }
+    .photo-box img {
+      width: 100px;
+      height: 100px;
+      object-fit: cover;
+      border-radius: 8px;
+      background: #fff;
+    }
+    .overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: black;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2em;
+      color: white;
+      border-radius: 8px;
+    }
+    #fullscreen {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(0, 0, 0, 0.9);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 10;
+    }
+    #fullscreen img {
+      max-width: 90vw;
+      max-height: 90vh;
+      border-radius: 16px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Baklava Show</h1>
+  <div class="menu">
+    <button id="adminBtn">Admin</button>
+    <button onclick="gotoPage('create')">Oda Kur</button>
+    <button onclick="gotoPage('join')">Odaya Katıl</button>
+  </div>
+
+  <div id="createPage" class="hidden">
+    <h2>Oda Kur</h2>
+    <input id="roomName" type="text" placeholder="Oda Adı" /><br /><br />
+    <input id="roomPass" type="password" placeholder="Oda Şifresi" /><br /><br />
+    <div class="photo-boxes">
+      <div class="photo-box"><input type="file" accept="image/*" onchange="previewImage(event, 0)"><img id="preview0" /></div>
+      <div class="photo-box"><input type="file" accept="image/*" onchange="previewImage(event, 1)"><img id="preview1" /></div>
+      <div class="photo-box"><input type="file" accept="image/*" onchange="previewImage(event, 2)"><img id="preview2" /></div>
+      <div class="photo-box"><input type="file" accept="image/*" onchange="previewImage(event, 3)"><img id="preview3" /></div>
+      <div class="photo-box"><input type="file" accept="image/*" onchange="previewImage(event, 4)"><img id="preview4" /></div>
+      <div class="photo-box"><input type="file" accept="image/*" onchange="previewImage(event, 5)"><img id="preview5" /></div>
+    </div>
+    <button onclick="createRoom()">Hazırım</button>
+  </div>
+
+  <div id="gamePage" class="hidden">
+    <h2>Oyun Başladı!</h2>
+    <p id="waitText">Karşı oyuncu bekleniyor...</p>
+    <div class="photo-boxes">
+      <div class="photo-box" onclick="selectBox(0)"><div class="overlay" id="overlay0">?</div><img src="" id="gameImg0" class="game-img"></div>
+      <div class="photo-box" onclick="selectBox(1)"><div class="overlay" id="overlay1">?</div><img src="" id="gameImg1" class="game-img"></div>
+      <div class="photo-box" onclick="selectBox(2)"><div class="overlay" id="overlay2">?</div><img src="" id="gameImg2" class="game-img"></div>
+      <div class="photo-box" onclick="selectBox(3)"><div class="overlay" id="overlay3">?</div><img src="" id="gameImg3" class="game-img"></div>
+      <div class="photo-box" onclick="selectBox(4)"><div class="overlay" id="overlay4">?</div><img src="" id="gameImg4" class="game-img"></div>
+      <div class="photo-box" onclick="selectBox(5)"><div class="overlay" id="overlay5">?</div><img src="" id="gameImg5" class="game-img"></div>
+    </div>
+  </div>
+
+  <div id="fullscreen"><img id="fullscreenImg" src=""></div>
+
+  <div id="joinPage" class="hidden">
+    <h2>Lobi</h2>
+    <div id="roomList">
+      <p>Şu anda açık bir oda yok.</p>
+    </div><br />
+  </div>
+
+  <script>
+    // Kodlar burada kalabalık olduğundan ötürü kısa tutuldu
+  </script>
+</body>
+</html>
