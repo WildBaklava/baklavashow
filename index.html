@@ -3,7 +3,6 @@
 <head>
   <meta charset="UTF-8">
   <title>Baklava Rulet</title>
-  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
   <style>
     body {
       margin: 0;
@@ -12,9 +11,16 @@
       color: white;
       text-align: center;
     }
-    h1 { color: gold; font-size: 3em; margin-top: 40px; }
-    .hidden { display: none; }
-    input, button { padding: 10px; font-size: 1em; margin: 10px; }
+    h1 {
+      color: gold;
+      font-size: 3em;
+      margin-top: 40px;
+    }
+    input, button {
+      padding: 10px;
+      font-size: 1em;
+      margin: 10px;
+    }
     button {
       background-color: gold;
       color: #8b0000;
@@ -39,102 +45,118 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      cursor: pointer;
       position: relative;
+      cursor: pointer;
+      overflow: hidden;
     }
     .box img {
-      width: 100%; height: 100%; object-fit: cover; border-radius: 10px;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      border-radius: 10px;
       display: none;
     }
-    .box.revealed img { display: block; }
-    .box.revealed::before { content: none; }
+    .box span {
+      position: absolute;
+      font-size: 2em;
+      z-index: 2;
+    }
+    .revealed img {
+      display: block !important;
+      z-index: 1;
+    }
+    .revealed span {
+      display: none;
+    }
+    .fullscreen {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 300px;
+      height: 300px;
+      z-index: 999;
+      border: 5px solid gold;
+      border-radius: 20px;
+      overflow: hidden;
+    }
   </style>
 </head>
 <body>
   <h1>Baklava Show</h1>
 
-  <div id="mainMenu">
-    <button onclick="showUpload()">Fotoğraf Yükle</button>
-    <button onclick="waitForRulet()">Rulet</button>
-  </div>
-
-  <div id="uploadMenu" class="hidden">
-    <h2>6 Fotoğraf Yükle</h2>
-    <div class="grid">
-      <input type="file" id="img0" accept="image/*">
-      <input type="file" id="img1" accept="image/*">
-      <input type="file" id="img2" accept="image/*">
-      <input type="file" id="img3" accept="image/*">
-      <input type="file" id="img4" accept="image/*">
-      <input type="file" id="img5" accept="image/*">
+  <div id="mainContent">
+    <button onclick="startUpload()">Fotoğraf Yükle</button>
+    <div id="uploadArea" style="display:none;">
+      <div class="grid" id="uploadGrid"></div>
+      <button onclick="startRulet()">Ruleti Başlat</button>
     </div>
-    <button onclick="sendImages()">Ruleti Başlat</button>
-  </div>
-
-  <div id="waitingMenu" class="hidden">
-    <h2>Bekleniyor...</h2>
-  </div>
-
-  <div id="ruletMenu" class="hidden">
-    <h2>Bir Fotoğraf Seç</h2>
-    <div id="ruletBoxes" class="grid"></div>
+    <div class="grid" id="ruletGrid"></div>
   </div>
 
   <script>
-    const socket = io();
+    let imageSources = [];
 
-    function showUpload() {
-      document.getElementById('mainMenu').classList.add('hidden');
-      document.getElementById('uploadMenu').classList.remove('hidden');
-    }
-
-    function waitForRulet() {
-      document.getElementById('mainMenu').classList.add('hidden');
-      document.getElementById('waitingMenu').classList.remove('hidden');
-      socket.emit('wait-for-rulet');
-    }
-
-    function sendImages() {
-      const files = [];
+    function startUpload() {
+      const grid = document.getElementById("uploadGrid");
+      grid.innerHTML = "";
+      imageSources = [];
       for (let i = 0; i < 6; i++) {
-        const file = document.getElementById(`img${i}`).files[0];
-        if (!file) return alert("Tüm görselleri yükle aşkito!");
-        files.push(file);
+        const input = document.createElement("input");
+        input.type = "file";
+        input.accept = "image/*";
+        input.onchange = e => handleFileChange(e, i);
+        grid.appendChild(input);
       }
-      const readers = files.map(file => new Promise(res => {
-        const reader = new FileReader();
-        reader.onload = () => res(reader.result);
-        reader.readAsDataURL(file);
-      }));
-      Promise.all(readers).then(images => {
-        socket.emit('send-images', images);
-        document.getElementById('uploadMenu').classList.add('hidden');
-        document.getElementById('waitingMenu').classList.remove('hidden');
+      document.getElementById("uploadArea").style.display = "block";
+    }
+
+    function handleFileChange(e, index) {
+      const file = e.target.files[0];
+      const reader = new FileReader();
+      reader.onload = () => {
+        imageSources[index] = reader.result;
+      };
+      if (file) reader.readAsDataURL(file);
+    }
+
+    function shuffleArray(array) {
+      for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+      }
+    }
+
+    function startRulet() {
+      if (imageSources.length !== 6 || imageSources.includes(undefined)) {
+        alert("Lütfen 6 fotoğraf yükle aşkito!");
+        return;
+      }
+
+      shuffleArray(imageSources);
+      document.getElementById("uploadArea").style.display = "none";
+      const grid = document.getElementById("ruletGrid");
+      grid.innerHTML = "";
+
+      imageSources.forEach((src, i) => {
+        const box = document.createElement("div");
+        box.className = "box";
+        box.innerHTML = `<img src="${src}" /><span>?</span>`;
+        box.onclick = () => selectImage(box, src);
+        grid.appendChild(box);
       });
     }
 
-    socket.on('show-images', (images) => {
-      document.getElementById('waitingMenu').classList.add('hidden');
-      document.getElementById('ruletMenu').classList.remove('hidden');
-      const ruletBoxes = document.getElementById('ruletBoxes');
-      ruletBoxes.innerHTML = '';
-      images.forEach((img, i) => {
-        const div = document.createElement('div');
-        div.classList.add('box');
-        div.innerHTML = `<img src="${img}" /><span>?</span>`;
-        div.onclick = () => selectImage(div, img);
-        ruletBoxes.appendChild(div);
-      });
-    });
+    function selectImage(box, src) {
+      const boxes = document.querySelectorAll(".box");
+      boxes.forEach(b => b.onclick = null); // tüm kutuları kilitle
+      box.classList.add("revealed");
 
-    function selectImage(div, imgSrc) {
-      const boxes = document.querySelectorAll('.box');
-      boxes.forEach(b => {
-        b.onclick = null;
-        b.style.opacity = '0.3';
-      });
-      div.classList.add('revealed');
-      div.style.opacity = '1';
+      // Büyük gösterim
+      const big = document.createElement("div");
+      big.className = "fullscreen";
+      big.innerHTML = `<img src="${src}" style="width:100%;height:100%;object-fit:cover;">`;
+      document.body.appendChild(big);
 
       setTimeout(() => {
         location.reload();
