@@ -1,10 +1,9 @@
-<!-- Basit Baklava Show Web Sitesi -->
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Baklava Show</title>
+  <meta charset="UTF-8">
+  <title>Baklava Rulet</title>
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
   <style>
     body {
       margin: 0;
@@ -13,276 +12,134 @@
       color: white;
       text-align: center;
     }
-    h1 {
-      color: gold;
-      font-size: 3em;
-      margin-top: 50px;
-    }
-    .menu {
-      margin-top: 100px;
-    }
-    .menu button {
+    h1 { color: gold; font-size: 3em; margin-top: 40px; }
+    .hidden { display: none; }
+    input, button { padding: 10px; font-size: 1em; margin: 10px; }
+    button {
       background-color: gold;
       color: #8b0000;
-      font-size: 1.5em;
-      padding: 20px 40px;
-      margin: 20px;
       border: none;
       border-radius: 10px;
       cursor: pointer;
     }
-    .hidden {
-      display: none;
-    }
-    .photo-boxes {
+    .grid {
       display: flex;
-      justify-content: center;
       flex-wrap: wrap;
+      justify-content: center;
       gap: 10px;
-      margin: 20px auto;
-      width: 60%;
+      margin-top: 20px;
     }
-    .photo-box {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      position: relative;
-      cursor: pointer;
-    }
-    .photo-box input[type='file'] {
+    .box {
       width: 100px;
       height: 100px;
-      background-color: white;
-      border-radius: 8px;
-      padding: 10px;
-    }
-    .photo-box img {
-      width: 100px;
-      height: 100px;
-      object-fit: cover;
-      border-radius: 8px;
-      background: #fff;
-    }
-    .overlay {
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background-color: black;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 2em;
+      background: black;
+      border-radius: 10px;
       color: white;
-      border-radius: 8px;
-    }
-    #fullscreen {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100vw;
-      height: 100vh;
-      background: rgba(0, 0, 0, 0.9);
-      display: none;
+      font-size: 2em;
+      display: flex;
       align-items: center;
       justify-content: center;
-      z-index: 10;
+      cursor: pointer;
+      position: relative;
     }
-    #fullscreen img {
-      max-width: 90vw;
-      max-height: 90vh;
-      border-radius: 16px;
+    .box img {
+      width: 100%; height: 100%; object-fit: cover; border-radius: 10px;
+      display: none;
     }
+    .box.revealed img { display: block; }
+    .box.revealed::before { content: none; }
   </style>
 </head>
 <body>
   <h1>Baklava Show</h1>
-  <div class="menu">
-    <button id="adminBtn">Admin</button>
-    <button onclick="gotoPage('create')">Oda Kur</button>
-    <button onclick="gotoPage('join')">Odaya Katıl</button>
+
+  <div id="mainMenu">
+    <button onclick="showUpload()">Fotoğraf Yükle</button>
+    <button onclick="waitForRulet()">Rulet</button>
   </div>
 
-  <div id="createPage" class="hidden">
-    <h2>Oda Kur</h2>
-    <input id="roomName" type="text" placeholder="Oda Adı" /><br /><br />
-    <input id="roomPass" type="password" placeholder="Oda Şifresi" /><br /><br />
-    <div class="photo-boxes">
-      <div class="photo-box"><input type="file" accept="image/*" onchange="previewImage(event, 0)"><img id="preview0" /></div>
-      <div class="photo-box"><input type="file" accept="image/*" onchange="previewImage(event, 1)"><img id="preview1" /></div>
-      <div class="photo-box"><input type="file" accept="image/*" onchange="previewImage(event, 2)"><img id="preview2" /></div>
-      <div class="photo-box"><input type="file" accept="image/*" onchange="previewImage(event, 3)"><img id="preview3" /></div>
-      <div class="photo-box"><input type="file" accept="image/*" onchange="previewImage(event, 4)"><img id="preview4" /></div>
-      <div class="photo-box"><input type="file" accept="image/*" onchange="previewImage(event, 5)"><img id="preview5" /></div>
+  <div id="uploadMenu" class="hidden">
+    <h2>6 Fotoğraf Yükle</h2>
+    <div class="grid">
+      <input type="file" id="img0" accept="image/*">
+      <input type="file" id="img1" accept="image/*">
+      <input type="file" id="img2" accept="image/*">
+      <input type="file" id="img3" accept="image/*">
+      <input type="file" id="img4" accept="image/*">
+      <input type="file" id="img5" accept="image/*">
     </div>
-    <button onclick="createRoom()">Hazırım</button>
+    <button onclick="sendImages()">Ruleti Başlat</button>
   </div>
 
-  <div id="gamePage" class="hidden">
-    <h2>Oyun Başladı!</h2>
-    <p id="waitText">Karşı oyuncu bekleniyor...</p>
-    <div class="photo-boxes">
-      <div class="photo-box" onclick="selectBox(0)"><div class="overlay" id="overlay0">?</div><img src="" id="gameImg0" class="game-img"></div>
-      <div class="photo-box" onclick="selectBox(1)"><div class="overlay" id="overlay1">?</div><img src="" id="gameImg1" class="game-img"></div>
-      <div class="photo-box" onclick="selectBox(2)"><div class="overlay" id="overlay2">?</div><img src="" id="gameImg2" class="game-img"></div>
-      <div class="photo-box" onclick="selectBox(3)"><div class="overlay" id="overlay3">?</div><img src="" id="gameImg3" class="game-img"></div>
-      <div class="photo-box" onclick="selectBox(4)"><div class="overlay" id="overlay4">?</div><img src="" id="gameImg4" class="game-img"></div>
-      <div class="photo-box" onclick="selectBox(5)"><div class="overlay" id="overlay5">?</div><img src="" id="gameImg5" class="game-img"></div>
-    </div>
+  <div id="waitingMenu" class="hidden">
+    <h2>Bekleniyor...</h2>
   </div>
 
-  <div id="fullscreen"><img id="fullscreenImg" src=""></div>
-
-  <div id="joinPage" class="hidden">
-    <h2>Lobi</h2>
-    <div id="roomList">
-      <p>Şu anda açık bir oda yok.</p>
-    </div><br />
+  <div id="ruletMenu" class="hidden">
+    <h2>Bir Fotoğraf Seç</h2>
+    <div id="ruletBoxes" class="grid"></div>
   </div>
 
   <script>
-    let createdRoom = null;
-    let gameImages = [];
-    let boxSelected = false;
+    const socket = io();
 
-    function gotoPage(page) {
-      document.querySelector('.menu').classList.add('hidden');
-      clearCreatePageImages();
-      if (page === 'create') {
-        document.getElementById('createPage').classList.remove('hidden');
-      } else if (page === 'join') {
-        document.getElementById('joinPage').classList.remove('hidden');
-        updateRoomList();
-      }
+    function showUpload() {
+      document.getElementById('mainMenu').classList.add('hidden');
+      document.getElementById('uploadMenu').classList.remove('hidden');
     }
 
-    function previewImage(event, index) {
-      const reader = new FileReader();
-      reader.onload = function () {
-        const output = document.getElementById('preview' + index);
-        output.src = reader.result;
-      };
-      reader.readAsDataURL(event.target.files[0]);
+    function waitForRulet() {
+      document.getElementById('mainMenu').classList.add('hidden');
+      document.getElementById('waitingMenu').classList.remove('hidden');
+      socket.emit('wait-for-rulet');
     }
 
-    function createRoom(isAdmin = false) {
-      const roomName = document.getElementById('roomName').value;
-      const roomPass = document.getElementById('roomPass').value;
-      if (!roomName || !roomPass) return alert("Lütfen tüm alanları doldurun.");
-
-      createdRoom = { name: roomName, pass: roomPass };
-
+    function sendImages() {
+      const files = [];
       for (let i = 0; i < 6; i++) {
-        const fileInput = document.querySelectorAll('.photo-box input')[i];
+        const file = document.getElementById(`img${i}`).files[0];
+        if (!file) return alert("Tüm görselleri yükle aşkito!");
+        files.push(file);
+      }
+      const readers = files.map(file => new Promise(res => {
         const reader = new FileReader();
-        if (fileInput.files[0]) {
-          reader.onload = (function(indexCopy) {
-            return function (event) {
-              gameImages[indexCopy] = event.target.result;
-            };
-          })(i);
-          reader.readAsDataURL(fileInput.files[0]);
-        }
-      }
-
-      document.getElementById('createPage').classList.add('hidden');
-      document.getElementById('gamePage').classList.remove('hidden');
-      for (let i = 0; i < 6; i++) {
-        const imgEl = document.getElementById('gameImg' + i);
-        if (imgEl && gameImages[i]) imgEl.src = gameImages[i];
-      }
-      updateRoomList();
-
-      if (isAdmin) {
-        document.getElementById('gamePage').classList.add('hidden');
-        document.querySelector('.menu').classList.remove('hidden');
-      }
-    }
-
-    function updateRoomList() {
-      const roomListDiv = document.getElementById('roomList');
-      roomListDiv.innerHTML = "";
-      if (createdRoom) {
-        roomListDiv.innerHTML = `
-          <p>Mevcut Odalar:</p>
-          <select id="roomSelect">
-            <option value="${createdRoom.pass}">${createdRoom.name}</option>
-          </select><br /><br />
-          <input id="joinPassword" type="password" placeholder="Oda Şifresi" /><br /><br />
-          <button onclick="joinRoom()">Katıl</button>
-        `;
-      } else {
-        roomListDiv.innerHTML = "<p>Şu anda açık bir oda yok.</p>";
-      }
-    }
-
-    function joinRoom() {
-      const selectedRoomPass = document.getElementById('roomSelect').value;
-      const enteredPass = document.getElementById('joinPassword').value;
-      if (enteredPass === selectedRoomPass) {
-        alert("Odaya başarıyla katıldınız! Oyun başlıyor...");
-        document.getElementById('joinPage').classList.add('hidden');
-        document.getElementById('gamePage').classList.remove('hidden');
-        document.getElementById('waitText').textContent = "Lütfen bir kutu seçin";
-        for (let i = 0; i < 6; i++) {
-          const imgEl = document.getElementById('gameImg' + i);
-          if (imgEl && gameImages[i]) imgEl.src = gameImages[i];
-        }
-      } else {
-        alert("Şifre yanlış!");
-      }
-    }
-
-    function selectBox(index) {
-      if (boxSelected) return;
-      boxSelected = true;
-      const boxes = document.querySelectorAll('.photo-box');
-      boxes.forEach((box, i) => {
-        box.onclick = null;
-        const overlay = box.querySelector('.overlay');
-        if (overlay) overlay.style.display = 'none';
-        if (i !== index) box.style.opacity = '0.3';
+        reader.onload = () => res(reader.result);
+        reader.readAsDataURL(file);
+      }));
+      Promise.all(readers).then(images => {
+        socket.emit('send-images', images);
+        document.getElementById('uploadMenu').classList.add('hidden');
+        document.getElementById('waitingMenu').classList.remove('hidden');
       });
+    }
 
-      const selectedImg = document.getElementById('gameImg' + index)?.src;
-      if (selectedImg) {
-        document.getElementById('fullscreenImg').src = selectedImg;
-        document.getElementById('fullscreen').style.display = 'flex';
-      }
+    socket.on('show-images', (images) => {
+      document.getElementById('waitingMenu').classList.add('hidden');
+      document.getElementById('ruletMenu').classList.remove('hidden');
+      const ruletBoxes = document.getElementById('ruletBoxes');
+      ruletBoxes.innerHTML = '';
+      images.forEach((img, i) => {
+        const div = document.createElement('div');
+        div.classList.add('box');
+        div.innerHTML = `<img src="${img}" /><span>?</span>`;
+        div.onclick = () => selectImage(div, img);
+        ruletBoxes.appendChild(div);
+      });
+    });
+
+    function selectImage(div, imgSrc) {
+      const boxes = document.querySelectorAll('.box');
+      boxes.forEach(b => {
+        b.onclick = null;
+        b.style.opacity = '0.3';
+      });
+      div.classList.add('revealed');
+      div.style.opacity = '1';
 
       setTimeout(() => {
         location.reload();
       }, 5000);
     }
-
-    function clearCreatePageImages() {
-      for (let i = 0; i < 6; i++) {
-        const preview = document.getElementById('preview' + i);
-        const input = document.querySelectorAll('.photo-box input')[i];
-        const gameImg = document.getElementById('gameImg' + i);
-        const overlay = document.getElementById('overlay' + i);
-        if (preview) preview.src = '';
-        if (input) input.value = '';
-        if (gameImg) gameImg.src = '';
-        if (overlay) overlay.style.display = 'flex';
-      }
-    }
-
-    document.addEventListener("DOMContentLoaded", () => {
-      const adminBtn = document.getElementById("adminBtn");
-      if (adminBtn) {
-        adminBtn.addEventListener("click", () => {
-          clearCreatePageImages();
-          document.querySelector('.menu').classList.add('hidden');
-          document.getElementById('createPage').classList.remove('hidden');
-          setTimeout(() => {
-            const adminButton = document.querySelector('#createPage button');
-            if (adminButton) adminButton.setAttribute('onclick', 'createRoom(true)');
-          }, 100);
-        });
-      }
-    });
   </script>
 </body>
 </html>
