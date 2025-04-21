@@ -142,7 +142,147 @@
   </div>
 
   <script>
-    // Kodlar burada kalabalık olduğundan ötürü kısa tutuldu
+    let createdRoom = null;
+    let gameImages = [];
+    let boxSelected = false;
+
+    function gotoPage(page) {
+      document.querySelector('.menu').classList.add('hidden');
+      clearCreatePageImages();
+      if (page === 'create') {
+        document.getElementById('createPage').classList.remove('hidden');
+      } else if (page === 'join') {
+        document.getElementById('joinPage').classList.remove('hidden');
+        updateRoomList();
+      }
+    }
+
+    function previewImage(event, index) {
+      const reader = new FileReader();
+      reader.onload = function () {
+        const output = document.getElementById('preview' + index);
+        output.src = reader.result;
+      };
+      reader.readAsDataURL(event.target.files[0]);
+    }
+
+    function createRoom(isAdmin = false) {
+      const roomName = document.getElementById('roomName').value;
+      const roomPass = document.getElementById('roomPass').value;
+      if (!roomName || !roomPass) return alert("Lütfen tüm alanları doldurun.");
+
+      createdRoom = { name: roomName, pass: roomPass };
+
+      for (let i = 0; i < 6; i++) {
+        const fileInput = document.querySelectorAll('.photo-box input')[i];
+        const reader = new FileReader();
+        if (fileInput.files[0]) {
+          reader.onload = (function(indexCopy) {
+            return function (event) {
+              gameImages[indexCopy] = event.target.result;
+            };
+          })(i);
+          reader.readAsDataURL(fileInput.files[0]);
+        }
+      }
+
+      document.getElementById('createPage').classList.add('hidden');
+      document.getElementById('gamePage').classList.remove('hidden');
+      for (let i = 0; i < 6; i++) {
+        const imgEl = document.getElementById('gameImg' + i);
+        if (imgEl && gameImages[i]) imgEl.src = gameImages[i];
+      }
+      updateRoomList();
+
+      if (isAdmin) {
+        document.getElementById('gamePage').classList.add('hidden');
+        document.querySelector('.menu').classList.remove('hidden');
+      }
+    }
+
+    function updateRoomList() {
+      const roomListDiv = document.getElementById('roomList');
+      roomListDiv.innerHTML = "";
+      if (createdRoom) {
+        roomListDiv.innerHTML = `
+          <p>Mevcut Odalar:</p>
+          <select id="roomSelect">
+            <option value="${createdRoom.pass}">${createdRoom.name}</option>
+          </select><br /><br />
+          <input id="joinPassword" type="password" placeholder="Oda Şifresi" /><br /><br />
+          <button onclick="joinRoom()">Katıl</button>
+        `;
+      } else {
+        roomListDiv.innerHTML = "<p>Şu anda açık bir oda yok.</p>";
+      }
+    }
+
+    function joinRoom() {
+      const selectedRoomPass = document.getElementById('roomSelect').value;
+      const enteredPass = document.getElementById('joinPassword').value;
+      if (enteredPass === selectedRoomPass) {
+        alert("Odaya başarıyla katıldınız! Oyun başlıyor...");
+        document.getElementById('joinPage').classList.add('hidden');
+        document.getElementById('gamePage').classList.remove('hidden');
+        document.getElementById('waitText').textContent = "Lütfen bir kutu seçin";
+        for (let i = 0; i < 6; i++) {
+          const imgEl = document.getElementById('gameImg' + i);
+          if (imgEl && gameImages[i]) imgEl.src = gameImages[i];
+        }
+      } else {
+        alert("Şifre yanlış!");
+      }
+    }
+
+    function selectBox(index) {
+      if (boxSelected) return;
+      boxSelected = true;
+      const boxes = document.querySelectorAll('.photo-box');
+      boxes.forEach((box, i) => {
+        box.onclick = null;
+        const overlay = box.querySelector('.overlay');
+        if (overlay) overlay.style.display = 'none';
+        if (i !== index) box.style.opacity = '0.3';
+      });
+
+      const selectedImg = document.getElementById('gameImg' + index)?.src;
+      if (selectedImg) {
+        document.getElementById('fullscreenImg').src = selectedImg;
+        document.getElementById('fullscreen').style.display = 'flex';
+      }
+
+      setTimeout(() => {
+        location.reload();
+      }, 5000);
+    }
+
+    function clearCreatePageImages() {
+      for (let i = 0; i < 6; i++) {
+        const preview = document.getElementById('preview' + i);
+        const input = document.querySelectorAll('.photo-box input')[i];
+        const gameImg = document.getElementById('gameImg' + i);
+        const overlay = document.getElementById('overlay' + i);
+        if (preview) preview.src = '';
+        if (input) input.value = '';
+        if (gameImg) gameImg.src = '';
+        if (overlay) overlay.style.display = 'flex';
+      }
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      const adminBtn = document.getElementById("adminBtn");
+      if (adminBtn) {
+        adminBtn.addEventListener("click", () => {
+          clearCreatePageImages();
+          document.querySelector('.menu').classList.add('hidden');
+          document.getElementById('createPage').classList.remove('hidden');
+          setTimeout(() => {
+            const adminButton = document.querySelector('#createPage button');
+            if (adminButton) adminButton.setAttribute('onclick', 'createRoom(true)');
+          }, 100);
+        });
+      }
+    });
   </script>
 </body>
 </html>
